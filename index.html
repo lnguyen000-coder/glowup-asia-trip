@@ -365,7 +365,7 @@ const WEATHER = {
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let state = {
-  nights: {Seoul:6,Busan:3,Jeju:4,Taipei:5},
+  nights: {Seoul:6,Busan:3,Jeju:4,Taipei:5}, // always reset
   hoods: {Seoul:null, Busan:null, Jeju:null, Taipei:null}, // null = not confirmed yet
   statuses: {},
   bookings: {},
@@ -379,7 +379,7 @@ function saveState(){localStorage.setItem('glowup_v5',JSON.stringify({nights:sta
 function loadState(){
   try{
     const s=JSON.parse(localStorage.getItem('glowup_v5')||'{}');
-    if(s.nights)state.nights=s.nights;
+    // nights always reset to defaults - never load from cache
     if(s.hoods)state.hoods=s.hoods;
     if(s.statuses)state.statuses=s.statuses;
     if(s.bookings)state.bookings=s.bookings;
@@ -514,48 +514,60 @@ function renderSecs(){
       </div>
       <div class="transport"><span class="transport-icon">${TRANSPORT[city].slice(0,2)}</span><span>${TRANSPORT[city].slice(3)}</span></div>
 `;
-    // Build hood input panel as real DOM element (not inside innerHTML)
-    const hoodPanel = document.createElement('div');
-    hoodPanel.id = 'hood-input-' + city;
-    hoodPanel.style.cssText = 'display:none;background:#fff;border:2px solid #C9856A;border-radius:14px;padding:16px;margin-bottom:12px;';
-    const hoodLabel = document.createElement('div');
-    hoodLabel.style.cssText = 'font-size:13px;font-weight:700;color:#1a0f2e;margin-bottom:10px;';
-    hoodLabel.textContent = 'Where are you staying in ' + city + '?';
-    hoodPanel.appendChild(hoodLabel);
-    const hoodInp = document.createElement('input');
-    hoodInp.type = 'text';
-    hoodInp.id = 'hood-field-' + city;
-    hoodInp.placeholder = 'e.g. Seochon, Hongdae, hotel name...';
-    hoodInp.value = state.hoods[city] || '';
-    hoodInp.style.cssText = 'width:100%;padding:11px 13px;border:2px solid #C9856A;border-radius:10px;font-size:15px;font-family:Inter,sans-serif;outline:none;margin-bottom:10px;color:#1a0f2e;background:white;box-sizing:border-box;';
-    hoodInp.addEventListener('keydown', function(e){ if(e.key==='Enter') saveHood(city); });
-    hoodPanel.appendChild(hoodInp);
-    const hoodPicksRow = document.createElement('div');
-    hoodPicksRow.id = 'hood-picks-' + city;
-    hoodPicksRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;';
-    (HOOD_SUGGESTIONS[city]||[]).forEach(function(s){
-      const pb = document.createElement('button');
-      pb.textContent = s;
-      pb.style.cssText = 'font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid #e5e7eb;background:#f9f3e8;cursor:pointer;font-family:Inter,sans-serif;color:#5c4a6e;';
-      pb.onclick = function(){ hoodInp.value = s; hoodInp.focus(); };
-      hoodPicksRow.appendChild(pb);
-    });
-    hoodPanel.appendChild(hoodPicksRow);
-    const hoodBtnRow = document.createElement('div');
-    hoodBtnRow.style.cssText = 'display:flex;gap:8px;';
-    const hoodSaveBtn = document.createElement('button');
-    hoodSaveBtn.textContent = 'Save neighbourhood';
-    hoodSaveBtn.style.cssText = 'flex:1;padding:11px;background:#2d1b3d;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;';
-    hoodSaveBtn.onclick = function(){ saveHood(city); };
-    hoodBtnRow.appendChild(hoodSaveBtn);
-    const hoodCancelBtn = document.createElement('button');
-    hoodCancelBtn.textContent = 'Cancel';
-    hoodCancelBtn.style.cssText = 'padding:11px 16px;background:#f9f3e8;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;cursor:pointer;font-family:Inter,sans-serif;color:#5c4a6e;';
-    hoodCancelBtn.onclick = function(){ hoodPanel.style.display='none'; hoodPanel.setAttribute('data-visible','0'); };
-    hoodBtnRow.appendChild(hoodCancelBtn);
-    hoodPanel.appendChild(hoodBtnRow);
-    div.appendChild(hoodPanel);
+    // Neighbourhood form - always visible when no hood set
+    if (!state.hoods[city]) {
+      const hoodForm = document.createElement('div');
+      hoodForm.style.cssText = 'background:#fff;border:2px solid #C9856A;border-radius:12px;padding:16px;margin-bottom:14px;';
+      hoodForm.innerHTML = '<div style="font-size:13px;font-weight:700;color:#1a0f2e;margin-bottom:10px;font-family:Inter,sans-serif;">📍 Where are you staying in ' + city + '?</div>';
+      
+      const hoodInp = document.createElement('input');
+      hoodInp.type = 'text';
+      hoodInp.id = 'hood-field-' + city;
+      hoodInp.placeholder = 'Type neighbourhood or hotel name...';
+      hoodInp.autocomplete = 'off';
+      hoodInp.style.cssText = 'display:block;width:100%;padding:12px;font-size:16px;border:2px solid #C9856A;border-radius:8px;margin-bottom:10px;font-family:Inter,sans-serif;color:#1a0f2e;box-sizing:border-box;background:#fff;';
+      hoodForm.appendChild(hoodInp);
 
+      const picksDiv = document.createElement('div');
+      picksDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;';
+      (HOOD_SUGGESTIONS[city]||[]).forEach(function(s){
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = s;
+        b.style.cssText = 'font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid #e5e7eb;background:#f9f3e8;cursor:pointer;font-family:Inter,sans-serif;color:#5c4a6e;';
+        b.addEventListener('click', function(){ hoodInp.value = s; });
+        picksDiv.appendChild(b);
+      });
+      hoodForm.appendChild(picksDiv);
+
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.textContent = 'Save neighbourhood';
+      saveBtn.style.cssText = 'width:100%;padding:12px;background:#2d1b3d;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;';
+      saveBtn.addEventListener('click', function(){
+        const val = hoodInp.value.trim();
+        if (!val) { hoodInp.style.borderColor='#dc2626'; return; }
+        state.hoods[city] = val;
+        saveState();
+        renderSecs();
+        toast('Saved: ' + city + ' - ' + val);
+      });
+      hoodForm.appendChild(saveBtn);
+      div.appendChild(hoodForm);
+    } else {
+      // Show edit button panel when hood is already set
+      const editPanel = document.createElement('div');
+      editPanel.style.cssText = 'margin-bottom:10px;';
+      const editInp = document.createElement('input');
+      editInp.type = 'text';
+      editInp.id = 'hood-field-' + city;
+      editInp.value = state.hoods[city];
+      editInp.style.cssText = 'display:none;width:100%;padding:10px;font-size:14px;border:2px solid #C9856A;border-radius:8px;margin-bottom:8px;font-family:Inter,sans-serif;color:#1a0f2e;box-sizing:border-box;';
+      editPanel.appendChild(editInp);
+      div.appendChild(editPanel);
+    }
+
+    // Compute start date for this city
     // Compute start date for this city
     const cityStartDate = computeDates()[city].start;
     shown.forEach((a,i)=>{
