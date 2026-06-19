@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>✨ Glowup Asia 2025</title>
+<title>✨ Glowup Asia 2025 v5.9</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -48,12 +48,7 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--text);mi
 .hbtn-key.active{background:rgba(46,158,130,0.3);color:#7FFFD4;border-color:rgba(127,255,212,0.3);}
 
 /* countdown */
-.countdown{display:flex;gap:12px;margin-bottom:18px;position:relative;z-index:1;}
-.cd-item{text-align:center;}
-.cd-num{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:#fff;line-height:1;}
-.cd-lbl{font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
-.cd-sep{font-size:24px;color:rgba(255,255,255,0.2);align-self:flex-start;margin-top:4px;}
-.cd-tagline{font-size:12px;color:var(--gold2);margin-left:4px;align-self:center;font-style:italic;}
+
 
 /* route ribbon */
 .route-ribbon{display:flex;align-items:center;gap:0;background:rgba(255,255,255,0.06);border-radius:12px 12px 0 0;padding:14px 16px;position:relative;z-index:1;overflow:hidden;}
@@ -269,7 +264,6 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--text);mi
     </div>
   </div>
 
-  <div class="countdown" id="countdown"></div>
 
   <div class="route-ribbon">
     <span class="route-yvr">YVR</span>
@@ -378,9 +372,10 @@ let state = {
   packing: {},
   activeTab: 'Seoul',
   sheetId: null,
+  restaurantOverrides: {},
 };
 
-function saveState(){localStorage.setItem('glowup_v5',JSON.stringify({nights:state.nights,hoods:state.hoods,statuses:state.statuses,bookings:state.bookings,packing:state.packing,sheetId:state.sheetId}));}
+function saveState(){localStorage.setItem('glowup_v5',JSON.stringify({nights:state.nights,hoods:state.hoods,statuses:state.statuses,bookings:state.bookings,packing:state.packing,sheetId:state.sheetId,restaurantOverrides:state.restaurantOverrides}));}
 function loadState(){
   try{
     const s=JSON.parse(localStorage.getItem('glowup_v5')||'{}');
@@ -390,29 +385,14 @@ function loadState(){
     if(s.bookings)state.bookings=s.bookings;
     if(s.packing)state.packing=s.packing;
     if(s.sheetId)state.sheetId=s.sheetId;
+    if(s.restaurantOverrides)state.restaurantOverrides=s.restaurantOverrides;
   }catch(e){}
 }
 function getStatus(city,p){return state.statuses[city+'-'+p]||'confirmed';}
 function setStatus(city,p,v){state.statuses[city+'-'+p]=v;saveState();}
 
 // ── COUNTDOWN ─────────────────────────────────────────────────────────────────
-function renderCountdown(){
-  const target=new Date('2025-09-06T23:59:00');
-  const now=new Date();
-  const diff=target-now;
-  if(diff<=0){document.getElementById('countdown').innerHTML='<div class="cd-tagline">✈️ You\'re on your way! Glowup activated ✨</div>';return;}
-  const d=Math.floor(diff/86400000);
-  const h=Math.floor((diff%86400000)/3600000);
-  const m=Math.floor((diff%3600000)/60000);
-  document.getElementById('countdown').innerHTML=`
-    <div class="cd-item"><div class="cd-num">${d}</div><div class="cd-lbl">days</div></div>
-    <div class="cd-sep">:</div>
-    <div class="cd-item"><div class="cd-num">${String(h).padStart(2,'0')}</div><div class="cd-lbl">hrs</div></div>
-    <div class="cd-sep">:</div>
-    <div class="cd-item"><div class="cd-num">${String(m).padStart(2,'0')}</div><div class="cd-lbl">min</div></div>
-    <div class="cd-tagline">until Seoul ✨</div>`;
-}
-setInterval(renderCountdown,60000);
+
 
 // ── DATES ─────────────────────────────────────────────────────────────────────
 function computeDates(){
@@ -510,7 +490,7 @@ function renderSecs(){
     div.id='sec-'+city;
     const acts=ACTIVITIES.filter(a=>a.city===city).sort((a,b)=>a.p-b.p);
     const n=state.nights[city];
-    const shown=acts.slice(0,Math.min(n*2,acts.length));
+    const shown=acts.slice(0,Math.min(n*3,acts.length));
     const dropped=acts.length-shown.length;
     const w=WEATHER[city];
     const confirmedHood = state.hoods[city];
@@ -522,7 +502,7 @@ function renderSecs(){
           <span style="opacity:0.4">·</span>
           ${confirmedHood
             ? `<span class="sec-hero-hood">📍 ${confirmedHood}</span>`
-            : `<button onclick="openHoodModal('${city}')" style="font-size:11px;background:rgba(201,133,106,0.15);color:#C9856A;border:1.5px dashed rgba(201,133,106,0.5);border-radius:20px;padding:3px 10px;cursor:pointer;font-family:'Inter',sans-serif;font-weight:600;">📍 Add neighbourhood</button>`
+            : `<button onclick="openHoodModal('${city}')" style="font-size:12px;background:#C9856A;color:white;border:none;border-radius:20px;padding:5px 14px;cursor:pointer;font-family:Inter,sans-serif;font-weight:700;letter-spacing:0.2px;">📍 Add your neighbourhood</button>`
           }
           ${confirmedHood ? `<button onclick="openHoodModal('${city}')" style="font-size:10px;background:none;color:rgba(0,0,0,0.3);border:none;cursor:pointer;padding:2px 6px;font-family:'Inter',sans-serif;">edit</button>` : ''}
         </div>
@@ -532,32 +512,139 @@ function renderSecs(){
           <span class="weather-chip">🌧 ${w.rain} rain</span>
         </div>
       </div>
-      <div class="transport"><span class="transport-icon">${TRANSPORT[city].slice(0,2)}</span><span>${TRANSPORT[city].slice(3)}</span></div>`;
+      <div class="transport"><span class="transport-icon">${TRANSPORT[city].slice(0,2)}</span><span>${TRANSPORT[city].slice(3)}</span></div>
+`;
+    // Build hood input panel as real DOM element (not inside innerHTML)
+    const hoodPanel = document.createElement('div');
+    hoodPanel.id = 'hood-input-' + city;
+    hoodPanel.style.cssText = 'display:none;background:#fff;border:2px solid #C9856A;border-radius:14px;padding:16px;margin-bottom:12px;';
+    const hoodLabel = document.createElement('div');
+    hoodLabel.style.cssText = 'font-size:13px;font-weight:700;color:#1a0f2e;margin-bottom:10px;';
+    hoodLabel.textContent = 'Where are you staying in ' + city + '?';
+    hoodPanel.appendChild(hoodLabel);
+    const hoodInp = document.createElement('input');
+    hoodInp.type = 'text';
+    hoodInp.id = 'hood-field-' + city;
+    hoodInp.placeholder = 'e.g. Seochon, Hongdae, hotel name...';
+    hoodInp.value = state.hoods[city] || '';
+    hoodInp.style.cssText = 'width:100%;padding:11px 13px;border:2px solid #C9856A;border-radius:10px;font-size:15px;font-family:Inter,sans-serif;outline:none;margin-bottom:10px;color:#1a0f2e;background:white;box-sizing:border-box;';
+    hoodInp.addEventListener('keydown', function(e){ if(e.key==='Enter') saveHood(city); });
+    hoodPanel.appendChild(hoodInp);
+    const hoodPicksRow = document.createElement('div');
+    hoodPicksRow.id = 'hood-picks-' + city;
+    hoodPicksRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;';
+    (HOOD_SUGGESTIONS[city]||[]).forEach(function(s){
+      const pb = document.createElement('button');
+      pb.textContent = s;
+      pb.style.cssText = 'font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid #e5e7eb;background:#f9f3e8;cursor:pointer;font-family:Inter,sans-serif;color:#5c4a6e;';
+      pb.onclick = function(){ hoodInp.value = s; hoodInp.focus(); };
+      hoodPicksRow.appendChild(pb);
+    });
+    hoodPanel.appendChild(hoodPicksRow);
+    const hoodBtnRow = document.createElement('div');
+    hoodBtnRow.style.cssText = 'display:flex;gap:8px;';
+    const hoodSaveBtn = document.createElement('button');
+    hoodSaveBtn.textContent = 'Save neighbourhood';
+    hoodSaveBtn.style.cssText = 'flex:1;padding:11px;background:#2d1b3d;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;';
+    hoodSaveBtn.onclick = function(){ saveHood(city); };
+    hoodBtnRow.appendChild(hoodSaveBtn);
+    const hoodCancelBtn = document.createElement('button');
+    hoodCancelBtn.textContent = 'Cancel';
+    hoodCancelBtn.style.cssText = 'padding:11px 16px;background:#f9f3e8;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;cursor:pointer;font-family:Inter,sans-serif;color:#5c4a6e;';
+    hoodCancelBtn.onclick = function(){ hoodPanel.style.display='none'; hoodPanel.setAttribute('data-visible','0'); };
+    hoodBtnRow.appendChild(hoodCancelBtn);
+    hoodPanel.appendChild(hoodBtnRow);
+    div.appendChild(hoodPanel);
+
+    // Compute start date for this city
+    const cityStartDate = computeDates()[city].start;
     shown.forEach((a,i)=>{
-      const dayNum=Math.floor(i/2)+1;
+      const dayNum=Math.floor(i/3)+1;
+      const cardDate = new Date(cityStartDate);
+      cardDate.setDate(cityStartDate.getDate() + (dayNum-1));
+      const dateLabel = cardDate.toLocaleDateString('en-US',{month:'short',day:'numeric'});
       const st=getStatus(city,a.p);
       const card=document.createElement('div');
       card.className='card';card.id=`card-${city}-${a.p}`;
+      // Restaurant pairing
+      const rp = getRestaurantForCard(city, dayNum, a.slot);
+      const rpEl = rp ? (() => {
+        const d = document.createElement('div');
+        d.style.cssText = 'margin-top:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px 12px;';
+        d.innerHTML = '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">'
+          + '<span style="font-size:12px;font-weight:700;color:#c2410c;">🍽 Eat nearby</span>'
+          + (rp.markWiens ? '<span style="font-size:10px;font-weight:700;background:#fef9c3;color:#856404;padding:2px 7px;border-radius:20px;border:1px solid #fde047;">📺 Mark Wiens</span>' : '')
+          + '</div>'
+          + '<div style="font-size:13px;font-weight:600;color:#1a0f2e;margin-bottom:2px;">' + rp.name + '</div>'
+          + '<div style="font-size:12px;color:#c2410c;margin-bottom:4px;">' + rp.dish + ' · ' + rp.area + '</div>'
+          + '<div style="font-size:11px;color:#92400e;line-height:1.5;">💡 ' + rp.tip + '</div>';
+        return d;
+      })() : null;
       card.innerHTML=`
         <div class="card-accent" style="background:${C[city].color}"></div>
         <div class="card-top">
-          <span class="day-pill" style="background:${C[city].light};color:${C[city].dark};">${i%2===0?`Day ${dayNum} · `:''}${a.slot}</span>
+          <span class="day-pill" style="background:${C[city].light};color:${C[city].dark};">${i%3===0?'Day '+dayNum+' · '+dateLabel+' · ':dateLabel+' · '}${a.slot}</span>
           <span class="cat-pill ${a.cat}">${a.cat}${a.aiGenerated?' ✨':''}</span>
         </div>
         <h3>${a.title}</h3>
         <p>${a.desc}</p>
         ${a.tip?`<div class="tip">💡 ${a.tip}</div>`:''}
-        <div class="srow">
+        <div class="srow" style="margin-top:10px;">
           <span class="slbl">Mark:</span>
           <button class="sbtn ${st==='confirmed'?'confirmed':''}" onclick="vote('${city}',${a.p},'confirmed',this)">✓ In</button>
           <button class="sbtn ${st==='maybe'?'maybe':''}" onclick="vote('${city}',${a.p},'maybe',this)">? Maybe</button>
           <button class="sbtn ${st==='skip'?'skip':''}" onclick="vote('${city}',${a.p},'skip',this)">✗ Skip</button>
         </div>
         <button class="ai-suggest-btn" onclick="openSuggestModal('${city}',${a.p},this.closest('.card'))">✨ Suggest something different</button>`;
+      if(rpEl) card.appendChild(rpEl);
+      // Add "override restaurant" button
+      const restOverrideId = city + "-" + a.p + "-rest";
+      const savedRest = state.restaurantOverrides && state.restaurantOverrides[restOverrideId];
+      if (savedRest) {
+        const savedEl = document.createElement("div");
+        savedEl.style.cssText = "margin-top:6px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:8px 12px;font-size:12px;color:#14532d;";
+        savedEl.innerHTML = "<span style='font-weight:700;'>📌 Your pick: </span>" + savedRest;
+        card.appendChild(savedEl);
+      }
+      const overrideBtn = document.createElement("button");
+      overrideBtn.textContent = savedRest ? "✏️ Change your restaurant pick" : "📌 Add your own restaurant pick";
+      overrideBtn.style.cssText = "margin-top:6px;width:100%;padding:6px;background:none;border:1px dashed #86efac;border-radius:8px;font-size:11px;font-weight:600;color:#15803d;cursor:pointer;font-family:Inter,sans-serif;text-align:left;padding-left:10px;";
+      overrideBtn.onclick = (function(oid, btn, crd) {
+        return function() {
+          var existing = document.getElementById("override-inp-" + oid);
+          if (existing) { existing.remove(); btn.style.display=""; return; }
+          btn.style.display = "none";
+          var row = document.createElement("div");
+          row.id = "override-inp-" + oid;
+          row.style.cssText = "margin-top:6px;display:flex;gap:6px;";
+          var inp2 = document.createElement("input");
+          inp2.type = "text";
+          inp2.placeholder = "Restaurant name or note...";
+          inp2.value = (state.restaurantOverrides && state.restaurantOverrides[oid]) || "";
+          inp2.style.cssText = "flex:1;padding:7px 10px;border:1.5px solid #86efac;border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;";
+          var saveBtn2 = document.createElement("button");
+          saveBtn2.textContent = "Save";
+          saveBtn2.style.cssText = "padding:7px 12px;background:#15803d;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;";
+          saveBtn2.onclick = function() {
+            var v = inp2.value.trim();
+            if (!state.restaurantOverrides) state.restaurantOverrides = {};
+            if (v) state.restaurantOverrides[oid] = v;
+            else delete state.restaurantOverrides[oid];
+            saveState();
+            renderSecs();
+            toast("Restaurant saved ✓");
+          };
+          row.appendChild(inp2); row.appendChild(saveBtn2);
+          crd.appendChild(row);
+          setTimeout(function(){ inp2.focus(); }, 50);
+        };
+      })(restOverrideId, overrideBtn, card);
+      card.appendChild(overrideBtn);
       card._actRef=a;
       div.appendChild(card);
     });
     if(dropped>0){const note=document.createElement('div');note.className='more-note';note.textContent=`+ ${dropped} more activities unlock if you add nights to ${city}`;div.appendChild(note);}
+
     container.appendChild(div);
   });
 
@@ -1123,89 +1210,153 @@ const PACKING = [
 
 
 
-// ── NEIGHBOURHOOD CONFIRMATION ─────────────────────────────────────────────────
+// ── NEIGHBOURHOOD ────────────────────────────────────────────────────────────
 const HOOD_SUGGESTIONS = {
-  Seoul:  ['Seochon','Insadong','Hongdae','Gangnam','Myeongdong','Itaewon','Bukchon','Mapo'],
-  Busan:  ['Seomyeon','Haeundae','Nampo-dong','Gwangalli','Centum City'],
-  Jeju:   ['Seogwipo','Jeju City','Jungmun','Aewol','Hallim'],
-  Taipei: ["Da'an",'Zhongzheng','Xinyi','Zhongshan','Wanhua','Shilin'],
+  Seoul:  ["Seochon","Insadong","Hongdae","Gangnam","Myeongdong","Itaewon","Bukchon","Mapo"],
+  Busan:  ["Seomyeon","Haeundae","Nampo-dong","Gwangalli","Centum City"],
+  Jeju:   ["Seogwipo","Jeju City","Jungmun","Aewol","Hallim"],
+  Taipei: ["Da-an","Zhongzheng","Xinyi","Zhongshan","Wanhua","Shilin"],
 };
 
-function openHoodModal(city){
-  document.getElementById('hoodModal')?.remove();
-  const suggestions = HOOD_SUGGESTIONS[city] || [];
-  const current = state.hoods[city] || '';
-  const m = document.createElement('div');
-  m.id = 'hoodModal';
-  m.className = 'modal-backdrop';
-  m.innerHTML = `<div class="modal-box">
-    <div class="modal-handle"></div>
-    <div class="modal-header">
-      <h3>📍 Where are you staying in ${city}?</h3>
-      <button class="ai-close-btn" onclick="document.getElementById('hoodModal').remove()">✕</button>
-    </div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Enter your neighbourhood or hotel area. Once confirmed, AI will tailor nearby activity suggestions around your location.</p>
-    <input id="hoodInput" class="modal-input" placeholder="e.g. ${suggestions[0]||city} or hotel name / area" value="${current}"/>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Quick picks:</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
-      ${suggestions.map(s=>`<button onclick="document.getElementById('hoodInput').value='${s}'" style="font-size:12px;padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--cream);cursor:pointer;font-family:'Inter',sans-serif;color:var(--text2);">${s}</button>`).join('')}
-    </div>
-    <div class="modal-btn-row">
-      <button class="mbtn-primary" onclick="confirmHood('${city}')">Confirm ${city} neighbourhood</button>
-      <button class="mbtn-secondary" onclick="document.getElementById('hoodModal').remove()">Cancel</button>
-    </div>
-    ${hasApiKey() ? `<button onclick="tailorActivitiesForHood('${city}')" style="width:100%;margin-top:8px;padding:10px;background:linear-gradient(135deg,rgba(124,111,212,0.1),rgba(74,144,212,0.1));border:1.5px dashed rgba(124,111,212,0.4);border-radius:var(--r-sm);font-size:13px;font-weight:600;color:#7C6FD4;cursor:pointer;font-family:'Inter',sans-serif;">✨ Confirm + ask AI to tailor activities around this area</button>` : ''}
-  </div>`;
-  document.body.appendChild(m);
-  document.getElementById('hoodInput').focus();
+function openHoodModal(city) {
+  // Remove any existing hood form
+  var old = document.getElementById('hoodForm');
+  if (old) { old.remove(); return; }
+
+  // Build a fixed overlay form attached directly to body
+  var overlay = document.createElement('div');
+  overlay.id = 'hoodForm';
+  overlay.style.cssText = [
+    'position:fixed',
+    'top:0','left:0','right:0','bottom:0',
+    'background:rgba(0,0,0,0.5)',
+    'z-index:99999',
+    'display:flex',
+    'align-items:center',
+    'justify-content:center',
+    'padding:20px'
+  ].join(';');
+
+  var box = document.createElement('div');
+  box.style.cssText = [
+    'background:#fff',
+    'border-radius:16px',
+    'padding:24px',
+    'width:100%',
+    'max-width:400px',
+    'box-shadow:0 20px 60px rgba(0,0,0,0.3)'
+  ].join(';');
+
+  var title = document.createElement('h3');
+  title.textContent = 'Where are you staying in ' + city + '?';
+  title.style.cssText = 'font-size:16px;font-weight:700;margin-bottom:16px;color:#1a0f2e;font-family:Inter,sans-serif;';
+  box.appendChild(title);
+
+  var inp = document.createElement('input');
+  inp.type = 'text';
+  inp.placeholder = 'e.g. Seochon, Hongdae, hotel name...';
+  inp.value = state.hoods[city] || '';
+  inp.autocomplete = 'off';
+  inp.style.cssText = [
+    'width:100%',
+    'padding:12px 14px',
+    'font-size:16px',
+    'border:2px solid #C9856A',
+    'border-radius:10px',
+    'margin-bottom:12px',
+    'font-family:Inter,sans-serif',
+    'color:#1a0f2e',
+    'outline:none',
+    'box-sizing:border-box',
+    'display:block'
+  ].join(';');
+
+  // Quick picks
+  var picksLabel = document.createElement('div');
+  picksLabel.textContent = 'Quick picks:';
+  picksLabel.style.cssText = 'font-size:11px;color:#9b86b0;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;font-family:Inter,sans-serif;';
+  box.appendChild(picksLabel);
+
+  var picks = document.createElement('div');
+  picks.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;';
+  (HOOD_SUGGESTIONS[city]||[]).forEach(function(s){
+    var b = document.createElement('button');
+    b.textContent = s;
+    b.type = 'button';
+    b.style.cssText = 'font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid #e5e7eb;background:#f9f3e8;cursor:pointer;font-family:Inter,sans-serif;color:#5c4a6e;';
+    b.addEventListener('click', function(){ inp.value = s; inp.focus(); });
+    picks.appendChild(b);
+  });
+
+  box.insertBefore(inp, picksLabel);
+  box.appendChild(picks);
+
+  var btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:8px;';
+
+  var saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.textContent = 'Save neighbourhood';
+  saveBtn.style.cssText = 'flex:1;padding:12px;background:#2d1b3d;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;';
+  saveBtn.addEventListener('click', function(){
+    var val = inp.value.trim();
+    if (!val) { inp.style.borderColor='#dc2626'; inp.focus(); return; }
+    state.hoods[city] = val;
+    saveState();
+    overlay.remove();
+    renderSecs();
+    toast('Saved: ' + city + ' - ' + val);
+  });
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.style.cssText = 'padding:12px 16px;background:#f9f3e8;border:1px solid #e5e7eb;border-radius:10px;font-size:14px;cursor:pointer;font-family:Inter,sans-serif;color:#5c4a6e;';
+  cancelBtn.addEventListener('click', function(){ overlay.remove(); });
+
+  btnRow.appendChild(saveBtn);
+  btnRow.appendChild(cancelBtn);
+  box.appendChild(btnRow);
+  overlay.appendChild(box);
+
+  // Clicking outside the box closes it
+  overlay.addEventListener('click', function(e){
+    if (e.target === overlay) overlay.remove();
+  });
+
+  document.body.appendChild(overlay);
+  // Focus after appended to DOM
+  setTimeout(function(){ inp.focus(); }, 100);
 }
+function confirmHood(city) { saveHood(city); }
 
-function confirmHood(city){
-  const val = document.getElementById('hoodInput').value.trim();
-  if(!val){ alert('Please enter a neighbourhood or area'); return; }
-  state.hoods[city] = val;
-  saveState();
-  document.getElementById('hoodModal').remove();
-  renderSecs();
-  toast(`📍 ${city}: ${val} saved`);
-}
-
-async function tailorActivitiesForHood(city){
-  const val = document.getElementById('hoodInput').value.trim();
-  if(!val){ alert('Please enter a neighbourhood first'); return; }
-  state.hoods[city] = val;
-  saveState();
-  document.getElementById('hoodModal').remove();
-  renderSecs();
-
-  // Open AI panel and ask for location-aware suggestions
-  toggleAiPanel(true);
-  appendChat('aiLog','ai',`On it! Tailoring your ${city} activities around ${val}… ✨`, true);
-
-  const acts = ACTIVITIES.filter(a=>a.city===city).sort((a,b)=>a.p-b.p)
-    .slice(0, state.nights[city]*2)
-    .map(a=>`- ${a.title} (${a.slot})`)
-    .join('\n');
-
-  const prompt = `The group is staying in ${val}, ${city}. Their current ${city} activities are:
-${acts}
-
-Please review these activities and suggest:
-1. Which 2-3 activities are especially well-suited given they're based in ${val}
-2. One activity that's particularly easy/walkable from ${val} that isn't on the list yet
-3. Any activity that might be inconveniently far from ${val} and worth reconsidering
-
-Keep it warm, specific, and concise. Reference actual distances or transit times where relevant.`;
-
-  try{
-    const res = await callClaude(prompt);
-    document.querySelector('.chat-loading')?.remove();
-    appendChat('aiLog','ai', res);
-  }catch(e){
-    document.querySelector('.chat-loading')?.remove();
-    if(e.message==='NO_KEY') appendChat('aiLog','ai','Add your API key to get location-tailored suggestions.');
-    else appendChat('aiLog','ai','Something went wrong: '+e.message.slice(0,60));
+function showHoodInput(city) {
+  var panel = document.getElementById("hood-input-" + city);
+  if (!panel) return;
+  // Toggle: use data attribute to track state reliably
+  var visible = panel.getAttribute("data-visible") === "1";
+  if (visible) {
+    panel.style.display = "none";
+    panel.setAttribute("data-visible", "0");
+  } else {
+    panel.style.display = "block";
+    panel.setAttribute("data-visible", "1");
+    setTimeout(function() {
+      var f = document.getElementById("hood-field-" + city);
+      if (f) { f.focus(); f.select(); }
+    }, 50);
   }
+}
+
+function saveHood(city) {
+  var inp = document.getElementById("hood-field-" + city);
+  if (!inp) return;
+  var val = inp.value.trim();
+  if (!val) { inp.style.outline = "2px solid #dc2626"; inp.focus(); return; }
+  state.hoods[city] = val;
+  saveState();
+  renderSecs();
+  toast("Saved: " + city + " - " + val + " ✓");
 }
 
 // ── CUSTOM BOOKINGS ───────────────────────────────────────────────────────────
@@ -1270,12 +1421,87 @@ function deleteCustomBooking(index){
   toast('Booking removed');
 }
 
+
+// ── RESTAURANT PAIRINGS ──────────────────────────────────────────────────────
+// Each entry maps to ONE specific day+slot to avoid duplicates
+// day is 1-indexed within the city stay
+const RESTAURANT_PAIRINGS = {
+  Seoul: [
+    {day:1, slot:"Evening",   name:"Hadongkwan (하동관)", dish:"Gomtang — milky beef bone broth", area:"Myeongdong", tip:"Seoul institution since 1939. Michelin Bib Gourmand. Perfect gentle first dinner, easy on the stomach after a long flight. ~15,000 KRW.", markWiens:false},
+    {day:2, slot:"Morning",   name:"Café Onion Anguk", dish:"Salt bread and espresso", area:"Anguk (near Gyeongbokgung)", tip:"Beautiful hanok-turned-café. Queue outside moves fast. Great for post-treatment recovery mornings.", markWiens:false},
+    {day:2, slot:"Afternoon", name:"Gwangjang Market (광장시장)", dish:"Bindaetteok, mayak gimbap, yukhoe", area:"Jongno-gu", tip:"Mark Wiens #1 Seoul food stop. Go at 3-4pm. Cash only. The beef tartare (yukhoe) here is extraordinary.", markWiens:true},
+    {day:2, slot:"Evening",   name:"Korean BBQ in Hongdae", dish:"Samgyeopsal and galbi", area:"Hongdae/Mapo", tip:"Dozens of excellent options. Look for charcoal grill restaurants (숯불). ~25,000-35,000 KRW per person.", markWiens:false},
+    {day:3, slot:"Morning",   name:"Tosokchon Samgyetang (토속촌)", dish:"Ginseng chicken soup", area:"Gyeongbokgung area", tip:"Mark Wiens visited. One of Korea's most famous samgyetang spots. Book via Naver or arrive before 11am. ~25,000 KRW.", markWiens:true},
+    {day:3, slot:"Afternoon", name:"Ikseon-dong alley cafés", dish:"Salt bread, specialty coffee, egg sandwich", area:"Ikseon-dong", tip:"Soha Salt Pond is the most famous. Charming alleyway vibes after exploring nearby palaces.", markWiens:false},
+    {day:3, slot:"Evening",   name:"Han River picnic at Banpo", dish:"Fried chicken and beer from GS25", area:"Banpo Hangang Park", tip:"Grab chicken and beer from the convenience store and sit on the grass. Rainbow fountain shows at 8pm and 9pm. Flat walk — great for mom.", markWiens:false},
+    {day:4, slot:"Morning",   name:"Sigol Gamjakuk (시골감자국)", dish:"Gamjatang — pork bone soup", area:"Eunpyeong-gu", tip:"Mark Wiens first meal in Korea on his 2023 tour. Rich, spicy, deeply satisfying. Worth the taxi ride. ~15,000 KRW.", markWiens:true},
+    {day:4, slot:"Afternoon", name:"Wangbijip Myeongdong (왕비집)", dish:"Hanwoo Korean BBQ", area:"Myeongdong", tip:"#1 most-saved Seoul restaurant 3 years running. Nearly 20 years heritage. Book via Naver in advance.", markWiens:false},
+    {day:4, slot:"Evening",   name:"Dongdaemun night market stalls", dish:"Korean street snacks and tteokbokki", area:"Dongdaemun", tip:"The outdoor market around DDP runs until 5am. Great for late-night bites after shopping.", markWiens:false},
+    {day:5, slot:"Morning",   name:"Hadongkwan (하동관)", dish:"Gomtang for breakfast", area:"Myeongdong", tip:"Opens early — one of the best breakfast spots in Seoul. Milky beef broth, tender brisket. ~15,000 KRW.", markWiens:false},
+    {day:5, slot:"Afternoon", name:"Buchon Yukhoe (부촌육회)", dish:"Korean beef tartare (yukhoe)", area:"Dongdaemun Market", tip:"2026 Global 100 must-visit restaurant. 50 years of beef dishes. ~20,000 KRW. Go on a weekday.", markWiens:false},
+    {day:5, slot:"Evening",   name:"Jjimjilbang snack bar", dish:"Sikhye (rice punch) and eggs", area:"Dragon Hill Spa, Seoul Station", tip:"Jjimjilbang snack bars serve classic Korean spa foods — sweet sikhye drink, soft-boiled eggs, ramen. Perfect after a sauna session.", markWiens:false},
+    {day:6, slot:"Morning",   name:"Café Bora (카페 보라)", dish:"Purple taro latte and desserts", area:"Insadong/Bukchon", tip:"Insta-famous purple-themed café near Bukchon. The purple taro croissant is stunning. Queue early.", markWiens:false},
+    {day:6, slot:"Afternoon", name:"Myeongdong street food crawl", dish:"Hotteok, tteokbokki, corn dogs, macarons", area:"Myeongdong", tip:"Go in the evening when all stalls open. Budget ~10,000-15,000 KRW per person for a full street food crawl.", markWiens:false},
+    {day:6, slot:"Evening",   name:"Woo Lae Oak (우래옥)", dish:"Pyongyang naengmyeon — cold buckwheat noodles", area:"Euljiro", tip:"Seoul's most famous cold noodle restaurant, open since 1946. The clear icy broth is unlike anything else. Book in advance.", markWiens:false},
+  ],
+  Busan: [
+    {day:1, slot:"Morning",   name:"Gamcheon Village café", dish:"Coffee and hotteok waffle", area:"Gamcheon Culture Village", tip:"Several cute cafés with hillside views. Grab one before exploring the murals.", markWiens:false},
+    {day:1, slot:"Afternoon", name:"Ssiat Hotteok at BIFF Square", dish:"Seed-filled sweet pancakes", area:"BIFF Square, Nampo-dong", tip:"Mark Wiens loved these. ~2,000 KRW each. Always a queue, always worth it. Eat immediately.", markWiens:true},
+    {day:1, slot:"Evening",   name:"Nak-Gob-Jae (낙곱재)", dish:"Octopus, tripe and crab butter stir-fry", area:"Seomyeon", tip:"A Busan specialty impossible to find in Seoul. Walkable from your hotel. Book via Naver. ~30,000 KRW/person.", markWiens:false},
+    {day:2, slot:"Morning",   name:"Choryang Milmyeon (초량밀면)", dish:"Busan cold wheat noodles", area:"Choryang-dong", tip:"Busan's answer to cold noodles since the 1950s. ~8,000 KRW. One of the best cheap eats in Korea.", markWiens:false},
+    {day:2, slot:"Afternoon", name:"Jagalchi Market 2F (자갈치시장)", dish:"Sashimi platter and haemultang", area:"Nampo-dong", tip:"Mark Wiens Busan highlight. Go at 11am-12pm for freshest selection. Budget ~40,000-60,000 KRW for 3.", markWiens:true},
+    {day:2, slot:"Evening",   name:"Dwaeji gukbap (돼지국밥)", dish:"Busan pork rice soup", area:"Near Seomyeon", tip:"The dish Busan is most famous for — milky pork bone broth with rice and pork slices. Open late. ~10,000 KRW.", markWiens:false},
+    {day:3, slot:"Morning",   name:"Gwangalli beachfront café", dish:"Coffee with Diamond Bridge views", area:"Gwangalli Beach", tip:"Several excellent cafés right on the waterfront. Perfect slow morning before heading to Jeju.", markWiens:false},
+    {day:3, slot:"Afternoon", name:"Shinsegae Centum City food court", dish:"Korean set meals and Busan specialties", area:"Centum City", tip:"The basement food court of the world's largest department store. Excellent variety, all sit-down. Great for mom.", markWiens:false},
+    {day:3, slot:"Evening",   name:"Korean BBQ at Seomyeon night market", dish:"Pork belly, galbi, soju cocktails", area:"Seomyeon", tip:"Seomyeon's nightlife street has fantastic BBQ at every price point. Lively and fun on a warm September evening.", markWiens:false},
+  ],
+  Jeju: [
+    {day:1, slot:"Morning",   name:"Seogwipo Maeil Olle Market", dish:"Hallabong juice and tangerine soft serve", area:"Seogwipo centre", tip:"Best in the morning when everything is freshest. Hallabong orange juice pressed fresh. 5 min walk.", markWiens:false},
+    {day:1, slot:"Afternoon", name:"Haenyeo seafood restaurant", dish:"Abalone, sea urchin, raw conch", area:"Near Seongsan Ilchulbong", tip:"Walk in after the 2pm haenyeo show. As local as it gets. ~30,000-50,000 KRW for a seafood platter.", markWiens:false},
+    {day:1, slot:"Evening",   name:"Jeju Black Pork BBQ — Donum", dish:"Heukdwaeji (Jeju black pork)", area:"Black Pork Street, Jeju City", tip:"Donum is the highest rated on Naver. Richer and darker than regular pork. Book via Naver. ~40,000 KRW/person.", markWiens:false},
+    {day:2, slot:"Morning",   name:"Jungmun beach café", dish:"Jeju green tea latte and scones", area:"Jungmun resort area", tip:"Beautiful cafés with ocean views near the cliffs. Great after the Daepo lava column walk.", markWiens:false},
+    {day:2, slot:"Afternoon", name:"Black pork gimbap from market", dish:"Heukdwaeji gimbap and tangerine sweets", area:"Seogwipo Maeil Olle Market", tip:"Pick up black pork gimbap to eat by the waterfall or cliffs. Best picnic food in Jeju.", markWiens:false},
+    {day:2, slot:"Evening",   name:"Haemultang at a Seogwipo restaurant", dish:"Spicy seafood hotpot", area:"Seogwipo waterfront", tip:"Order haemultang for two — the spicy mixed seafood hotpot is one of Jeju's signature dishes. ~35,000-50,000 KRW.", markWiens:false},
+    {day:3, slot:"Morning",   name:"Olle market breakfast", dish:"Freshly squeezed citrus juice and local pastries", area:"Seogwipo", tip:"The local market vendors make fresh juice every morning. Start your coastal walk well-fuelled.", markWiens:false},
+    {day:3, slot:"Afternoon", name:"Jeju Arte Museum café", dish:"Jeju green tea desserts and coffee", area:"Jeju Arte Museum, Aewol", tip:"The café inside has beautiful Jeju ingredient desserts. Great pit stop after the immersive art exhibition.", markWiens:false},
+    {day:3, slot:"Evening",   name:"Samgyupsal at a local Seogwipo spot", dish:"Grilled pork belly with local kimchi", area:"Seogwipo", tip:"Many small family-run BBQ spots in Seogwipo. Much more local and affordable than tourist areas.", markWiens:false},
+    {day:4, slot:"Morning",   name:"Café with Hyeopjae Beach view", dish:"Iced latte and sandwich", area:"Hyeopjae Beach, north Jeju", tip:"Several cafés right on Hyeopjae with turquoise water views. Perfect before or after your beach swim.", markWiens:false},
+    {day:4, slot:"Afternoon", name:"Aewol Handam coastal road cafés", dish:"Famous cream cheese garlic bread", area:"Aewol coastal road", tip:"The Aewol coastal road is lined with iconic cafés. Monsant and Café Nowon have the best views and are famous for garlic bread.", markWiens:false},
+    {day:4, slot:"Evening",   name:"Galchi jorim — braised hairtail fish", dish:"Spicy braised hairtail fish (Jeju specialty)", area:"Seogwipo", tip:"Galchi (hairtail fish) is Jeju's most iconic dish — braised in spicy sauce, served with rice. Ask your guesthouse for their local rec.", markWiens:false},
+  ],
+  Taipei: [
+    {day:1, slot:"Morning",   name:"Yong Kang Beef Noodle", dish:"Braised beef noodle soup", area:"Da-an", tip:"Right nearby. Arrive 11:30am before lunch rush. ~250 TWD. Cash preferred.", markWiens:false},
+    {day:1, slot:"Afternoon", name:"Ay-Chung Flour-Rice Noodle", dish:"Oyster vermicelli noodles", area:"Ximending", tip:"Taipei institution since 1975. ~60 TWD. Eat standing outside.", markWiens:false},
+    {day:1, slot:"Evening",   name:"Shilin Night Market", dish:"Giant fried chicken steak, oyster omelette", area:"Shilin", tip:"Go at 7-8pm when all stalls open. Come very hungry.", markWiens:false},
+    {day:2, slot:"Morning",   name:"Din Tai Fung Xinyi flagship", dish:"Xiaolongbao soup dumplings", area:"Xinyi district", tip:"The original. Watch dumplings hand-folded through glass. Weekday for shorter waits. ~600 TWD/person.", markWiens:false},
+    {day:2, slot:"Afternoon", name:"Bao-an Temple area snacks", dish:"Traditional Taiwanese street snacks", area:"Datong district", tip:"Streets around Bao-an Temple have excellent local snacks rarely found on the tourist trail.", markWiens:false},
+    {day:2, slot:"Evening",   name:"Raohe Street pepper pork buns", dish:"Fuzhou pepper pork buns", area:"Raohe Street, Songshan", tip:"~55 TWD each. Queue at the temple stall. Eat immediately for the hot broth inside.", markWiens:false},
+    {day:3, slot:"Morning",   name:"Dihua Street traditional breakfast", dish:"Soy milk, scallion pancake, rice roll", area:"Dihua Street", tip:"Traditional Taiwanese breakfast in the oldest neighbourhood. Perfect before gift shopping.", markWiens:false},
+    {day:3, slot:"Afternoon", name:"Ice Monster mango shaved ice", dish:"Fresh mango shaved ice", area:"Da-an", tip:"The most famous mango ice in Taipei. September is peak mango season. ~200 TWD.", markWiens:false},
+    {day:3, slot:"Evening",   name:"Ningxia Night Market", dish:"Oyster vermicelli, pork ribs soup, taro balls", area:"Datong district", tip:"More local than Shilin. Smaller, easier to navigate with mom. Beloved by Taipei residents.", markWiens:false},
+    {day:4, slot:"Morning",   name:"Xinbeitou hot spring area cafe", dish:"Japanese-style breakfast and onsen eggs", area:"Xinbeitou (Beitou hot spring village)", tip:"Several charming cafes near the hot spring area. Perfect before or after your soak. The area has a lovely Japanese colonial vibe.", markWiens:false},
+    {day:4, slot:"Afternoon", name:"Din Tai Fung (鼎泰豐)", dish:"Xiaolongbao soup dumplings", area:"Xinyi district", tip:"The legendary original. Watch dumplings hand-folded through glass. ~600 TWD/person. Weekday for shorter waits.", markWiens:false},
+    {day:4, slot:"Evening",   name:"Ximending night shopping and street food", dish:"Night snacks, scallion pancake, mango ice cream", area:"Ximending", tip:"Ximending is electric at night. Grab street snacks, browse the shops, and end with Taiwanese shaved ice.", markWiens:false},
+    {day:5, slot:"Morning",   name:"Traditional Taiwanese breakfast set", dish:"Soy milk, scallion pancake, egg crepe (danbing)", area:"Any breakfast shop near you", tip:"Taipei breakfast culture is special — small shops open at 6am serving freshly made sets. ~80-120 TWD. The danbing (egg crepe) is essential.", markWiens:false},
+    {day:5, slot:"Afternoon", name:"Longshan Temple area lunch", dish:"Taiwanese noodles and traditional snacks", area:"Wanhua district", tip:"Many excellent cheap lunch spots around Longshan Temple. Pork chop rice (paigu fan) is a Wanhua specialty.", markWiens:false},
+    {day:5, slot:"Evening",   name:"Final night dinner + bubble tea crawl", dish:"Last Taiwanese meal + Tiger Sugar bubble tea", area:"Da-an / Raohe", tip:"Use your last Taipei evening to try anything you missed. End with Tiger Sugar or Chun Shui Tang bubble tea. Buy pineapple cakes tomorrow at the airport or Dihua Street.", markWiens:false},
+  ],
+};
+
+
+function getRestaurantForCard(city, dayNum, slot) {
+  var pairings = RESTAURANT_PAIRINGS[city];
+  if (!pairings) return null;
+  // Find exact match for this day + slot
+  return pairings.find(function(p) { return p.day === dayNum && p.slot === slot; }) || null;
+}
+
+
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 function boot(){
   loadState();
   loadCustomActivities();
   updateKeyBtn();
-  renderCountdown();
   renderAlloc();
   renderTabs();
   renderSecs();
@@ -1323,20 +1549,27 @@ const ACTIVITIES = [
   {city:'Jeju',p:10, slot:'Afternoon', cat:'food',      title:'Seogwipo Maeil Olle local market',             desc:'A small, local market with fresh Jeju produce — hallabong oranges, tangerine sweets, black pork snacks, and local gifts. Much more authentic than tourist markets.',                                          tip:'Great for picking up Jeju gifts and snacks. 20 min bus from central Seogwipo.'},
   // TAIPEI
   {city:'Taipei',p:1, slot:'Morning',  cat:'culture',   title:'National Palace Museum',                        desc:'One of the world\'s truly great museums — 800,000 artefacts including the famous jade cabbage and jade pork belly. Fully air-conditioned with plenty of seating.',                                             tip:'MRT to Shilin then bus 255. Follow the thematic route — it keeps the visit focused and manageable.'},
-  {city:'Taipei',p:2, slot:'Evening',  cat:'food',      title:'Shilin Night Market',                           desc:'Taipei\'s most famous night market. Dozens of food stalls, carnival games, and shopping stalls. Best experienced in the evening with lots of seated eating options.',                                           tip:'Try oyster omelette, scallion pancakes, xiaolongbao, and bubble tea. Come genuinely hungry.'},
-  {city:'Taipei',p:3, slot:'Morning',  cat:'culture',   title:'Chiang Kai-shek Memorial Hall',                 desc:'Grand public square with stunning traditional architecture and peaceful gardens. Locals practice tai chi in the mornings. Changing of the guard ceremony every hour.',                                           tip:'Free entry. Go on a weekday morning for the tai chi atmosphere. Very calm and beautiful.'},
-  {city:'Taipei',p:4, slot:'Afternoon',cat:'shopping',  title:'Ximending walking district',                    desc:'The Harajuku of Taipei — shopping, bubble tea, street food, and incredible street art all in one flat, very walkable district. Great for all three of you.',                                                   tip:'Din Tai Fung is nearby — legendary soup dumplings that mom will absolutely love.'},
-  {city:'Taipei',p:5, slot:'Morning',  cat:'nature',    title:'Elephant Mountain hike + Taipei 101',           desc:'An easy 20–30 min staircase climb to the iconic free viewpoint of Taipei 101 from above. Then go up inside Taipei 101 itself for full 360° city views.',                                                       tip:'Take it slow for mom — it\'s just steps, nothing technical. Buy 101 tickets online.'},
+  {city:'Taipei',p:2, slot:'Afternoon',cat:'food',      title:'Shilin Night Market',                           desc:'Taipei\'s most famous night market. Dozens of food stalls, carnival games, and shopping stalls. Best experienced in the evening with lots of seated eating options.',                                           tip:'Try oyster omelette, scallion pancakes, xiaolongbao, and bubble tea. Come genuinely hungry.'},
+  {city:'Taipei',p:3, slot:'Evening',  cat:'culture',   title:'Chiang Kai-shek Memorial Hall',                 desc:'Grand public square with stunning traditional architecture and peaceful gardens. Locals practice tai chi in the mornings. Changing of the guard ceremony every hour.',                                           tip:'Free entry. Go on a weekday morning for the tai chi atmosphere. Very calm and beautiful.'},
+  {city:'Taipei',p:4, slot:'Morning',  cat:'shopping',  title:'Ximending walking district',                    desc:'The Harajuku of Taipei — shopping, bubble tea, street food, and incredible street art all in one flat, very walkable district. Great for all three of you.',                                                   tip:'Din Tai Fung is nearby — legendary soup dumplings that mom will absolutely love.'},
+  {city:'Taipei',p:5, slot:'Afternoon',cat:'nature',    title:'Elephant Mountain hike + Taipei 101',           desc:'An easy 20–30 min staircase climb to the iconic free viewpoint of Taipei 101 from above. Then go up inside Taipei 101 itself for full 360° city views.',                                                       tip:'Take it slow for mom — it\'s just steps, nothing technical. Buy 101 tickets online.'},
   {city:'Taipei',p:6, slot:'Evening',  cat:'food',      title:'Raohe Street Night Market',                     desc:'Smaller and more local than Shilin. Famous for its pepper pork buns at the temple stall — one of the best bites in all of Taiwan.',                                                                             tip:'The temple entrance pepper pork bun queue is always worth the wait.'},
   {city:'Taipei',p:7, slot:'Morning',  cat:'shopping',  title:'Dihua Street — historic market + gifts',        desc:'Taipei\'s oldest and most beautiful street — Baroque shophouses selling traditional goods, packaged teas, and Taiwanese souvenirs. The best place to buy gifts.',                                             tip:'Buy pineapple cakes and nougat here — far better quality than the airport shops.'},
-  {city:'Taipei',p:8, slot:'Full day', cat:'culture',   title:'Day trip: Jiufen Old Street',                   desc:'The magical hillside gold-rush village that partly inspired Spirited Away. Narrow lantern-lit lanes, tea houses with sea views, and incredible atmosphere at dusk.',                                           tip:'Go on a weekday. Tea houses have seating — perfect rest stops for mom. Best at sunset.'},
-  {city:'Taipei',p:9, slot:'Full day', cat:'nature',    title:'Day trip: Yehliu Geopark',                      desc:'Extraordinary coastal rock formations including the famous Queen\'s Head rock. Flat boardwalk along the whole coast — very accessible and visually unlike anything else.',                                     tip:'Can combine with Jiufen on the same day — both on the same bus route north of Taipei.'},
-  {city:'Taipei',p:10,slot:'Afternoon',cat:'wellness',  title:'Beitou hot spring village',                     desc:'Hot spring resort area 30 min from central Taipei by MRT. Traditional bathhouses, steaming thermal valleys, and mountain scenery. A lovely restorative afternoon.',                                            tip:'Private baths are available for just the three of you. Check renovation status before going.'},
-  {city:'Taipei',p:11,slot:'Morning',  cat:'food',      title:'Din Tai Fung flagship — soup dumplings',        desc:'The legendary Taipei original. Watch dumplings being hand-made through the glass kitchen, then eat the best xiaolongbao of your life. A genuine bucket-list meal.',                                           tip:'Weekday morning to avoid the longest waits. Worth every minute of any queue.'},
+  {city:'Taipei',p:8, slot:'Afternoon',cat:'culture',   title:'Day trip: Jiufen Old Street',                   desc:'The magical hillside gold-rush village that partly inspired Spirited Away. Narrow lantern-lit lanes, tea houses with sea views, and incredible atmosphere at dusk.',                                           tip:'Go on a weekday. Tea houses have seating — perfect rest stops for mom. Best at sunset.'},
+  {city:'Taipei',p:9, slot:'Evening',  cat:'nature',    title:'Day trip: Yehliu Geopark',                      desc:'Extraordinary coastal rock formations including the famous Queen\'s Head rock. Flat boardwalk along the whole coast — very accessible and visually unlike anything else.',                                     tip:'Can combine with Jiufen on the same day — both on the same bus route north of Taipei.'},
+  {city:'Taipei',p:10,slot:'Morning',  cat:'wellness',  title:'Beitou hot spring village',                     desc:'Hot spring resort area 30 min from central Taipei by MRT. Traditional bathhouses, steaming thermal valleys, and mountain scenery. A lovely restorative afternoon.',                                            tip:'Private baths are available for just the three of you. Check renovation status before going.'},
+  {city:'Taipei',p:11,slot:'Afternoon',cat:'food',      title:'Din Tai Fung flagship — soup dumplings',        desc:'The legendary Taipei original. Watch dumplings being hand-made through the glass kitchen, then eat the best xiaolongbao of your life. A genuine bucket-list meal.',                                           tip:'Weekday morning to avoid the longest waits. Worth every minute of any queue.'},
 ];
 
 const LOGISTICS = [
   {type:'Flights',    item:'YVR → ICN Seoul',              details:'~11.5 hrs direct. Korean Air or Air Canada. Departs Sep 6, arrives Sep 7.',            when:'Already booked',         status:'confirmed'},
+  {city:'Taipei',p:12,slot:'Evening',  cat:'shopping', title:'Eslite Spectrum bookstore + night shopping', desc:"Taipei's most beautiful underground shopping street connects MRT stations with boutiques, cafes, and the famous 24-hour Eslite Spectrum bookstore — a stunning architectural space worth visiting even if you don't buy anything.", tip:"Eslite Spectrum Songyan store is the most impressive. Great air-conditioned afternoon activity on a hot or rainy day.", status:'confirmed'},
+  {city:'Taipei',p:13,slot:'Morning',  cat:'food',     title:'Gongguan morning breakfast near NTU',              desc:"A smaller, student-oriented night market with excellent cheap bites — scallion pancakes, stinky tofu, Taiwanese sausage, and fresh fruit drinks. Much less crowded than Shilin.", tip:"Take MRT to Gongguan station. Very flat and walkable. A great alternative to the bigger tourist night markets.", status:'confirmed'},
+  {city:'Taipei',p:14,slot:'Afternoon',cat:'culture',  title:'Longshan Temple and Bopiliao Historic Block',        desc:"Longshan Temple is Taipei's most atmospheric temple — incense smoke, chanting, and intricate gold architecture. Nearby Bopiliao is a preserved Qing dynasty street with galleries and local cafes.", tip:"Go in late afternoon for the best golden light. Free entry to both. Flat and easy walking — perfect for mom.", status:'confirmed'},
+  {city:'Taipei',p:15,slot:'Evening',  cat:'food',     title:'Final night — Da-an dinner and bubble tea crawl',         desc:"A relaxed evening close to home in Da-an — excellent local restaurants, bubble tea shops, and a gentle evening walk through Da-an Forest Park as locals gather for their evening routines.", tip:"Da-an has fantastic neighbourhood restaurants. Ask your hotel for their current favourite — locals know best.", status:'confirmed'},
+  {city:'Seoul',p:13,slot:'Evening',cat:'food',title:'Korean BBQ dinner in the city',desc:"Tabletop Korean BBQ — grill your own samgyeopsal (pork belly) or galbi (beef short rib), wrap in lettuce with garlic and banchan sides. A non-negotiable Seoul experience with a great evening vibe.",tip:"Hongdae and Mapo are packed with excellent BBQ spots. Look for charcoal grill restaurants (숯불). ~25,000-35,000 KRW per person.",status:'confirmed'},
+  {city:'Seoul',p:14,slot:'Evening',cat:'culture',title:'Han River night picnic at Banpo',desc:"Locals flock to Banpo Hangang Park at night for convenience store chicken, beer, and snacks on the grass. The Banpo Bridge rainbow fountain shows run at 8pm and 9pm. A true Seoul local night out.",tip:"Completely free. Grab fried chicken and beer from GS25 or CU convenience stores nearby. Flat walk along the river — great for mom.",status:'confirmed'},
+  {city:'Seoul',p:15,slot:'Evening',cat:'shopping',title:'Dongdaemun Design Plaza (DDP) at night',desc:"Zaha Hadid's iconic futuristic building looks extraordinary lit up at night. The surrounding outdoor market runs until 5am with clothes, accessories, and street food.",tip:"DDP itself is free to walk around. The outdoor night market starts at 10pm. Great for late-night shopping after a long day.",status:'confirmed'},
   {type:'Flights',    item:'Busan PUS → Jeju CJU',         details:'~55 min domestic. Jeju Air, T\'way, or Jin Air. Book when in Korea or in advance.',     when:'Book 4–6 weeks ahead',   status:'to-book'},
   {type:'Flights',    item:'Jeju CJU → Taipei TPE',        details:'~2.5 hrs. Korean Air or Jeju Air.',                                                      when:'Book 4–6 weeks ahead',   status:'to-book'},
   {type:'Flights',    item:'TPE → YVR home',               details:'~12 hrs. Sep 25 departure.',                                                             when:'Already booked',         status:'confirmed'},
