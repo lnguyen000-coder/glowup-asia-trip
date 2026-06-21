@@ -525,12 +525,17 @@ function renderSecs(){
       });
     var n = state.nights[city];
 
-    // Apply arrival override
+    // Apply arrival override - pick correct slots for Day 1
     var arrOvr = state.arrivalOverrides && state.arrivalOverrides[city];
     var shown;
     if(arrOvr && arrOvr.day1Slots){
-      var day1 = acts.slice(0, arrOvr.day1Slots);
-      var rest = acts.slice(3, 3+(n-1)*3);
+      // Get all Day 1 activities (p:1,2,3) sorted by slot order
+      var day1All = acts.filter(function(a){ return Math.floor((a.p-1)/3) === 0; });
+      // Take only the LAST N slots (e.g. evening-only = last 1, afternoon+evening = last 2)
+      var day1 = day1All.slice(day1All.length - arrOvr.day1Slots);
+      // Get remaining days normally
+      var rest = acts.filter(function(a){ return Math.floor((a.p-1)/3) > 0; })
+                     .slice(0, (n-1)*3);
       shown = day1.concat(rest);
     } else {
       shown = acts.slice(0, Math.min(n*3, acts.length));
@@ -538,8 +543,17 @@ function renderSecs(){
     var dropped = acts.length - shown.length;
     var cityStartDate = dates[city].start;
 
+    // Build day number map based on actual structure
+    var dayNums = [];
+    if(arrOvr && arrOvr.day1Slots){
+      for(var _i=0;_i<arrOvr.day1Slots;_i++) dayNums.push(1);
+      for(var _i=0;_i<(n-1)*3;_i++) dayNums.push(Math.floor(_i/3)+2);
+    } else {
+      for(var _i=0;_i<shown.length;_i++) dayNums.push(Math.floor(_i/3)+1);
+    }
+
     shown.forEach(function(a, i){
-      var dayNum = Math.floor(i/3)+1;
+      var dayNum = dayNums[i] || Math.floor(i/3)+1;
       var cardDate = new Date(cityStartDate);
       cardDate.setDate(cityStartDate.getDate()+(dayNum-1));
       var dateLabel = fmt(cardDate);
@@ -562,7 +576,9 @@ function renderSecs(){
       var cardTop = document.createElement('div');
       cardTop.className = 'card-top';
       cardTop.innerHTML = '<span class="day-pill" style="background:'+C[city].light+';color:'+C[city].dark+';">'
-        +(i%3===0?'Day '+dayNum+' · ':'')+dateLabel+' · '+a.slot+'</span>'
+        var isFirstOfDay = (i===0) || (dayNums[i] !== dayNums[i-1]);
+        cardTop.innerHTML = '<span class="day-pill" style="background:'+C[city].light+';color:'+C[city].dark+'">'
+        +(isFirstOfDay?'Day '+dayNum+' \u00b7 ':'')+dateLabel+' \u00b7 '+a.slot+'</span>'
         +'<span class="cat-pill '+a.cat+'">'+a.cat+(a.aiGenerated?' ✨':'')+'</span>';
       card.appendChild(cardTop);
 
