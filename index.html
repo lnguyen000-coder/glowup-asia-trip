@@ -319,6 +319,10 @@ function saveState(){
   try{ localStorage.setItem('glowup_v6', JSON.stringify(state)); }catch(e){}
 }
 function loadState(){
+  // Clear any old version data
+  ['glowup_v3','glowup_v4','glowup_v5','glowup_custom_acts','glowup_sheet_id'].forEach(function(k){
+    localStorage.removeItem(k);
+  });
   try{
     var s = JSON.parse(localStorage.getItem('glowup_v6')||'{}');
     if(s.nights) state.nights = s.nights;
@@ -924,31 +928,63 @@ function parseHour(t){
   return h+mn/60;
 }
 async function adjustForBooking(id){
-  var saved=state.bookings[id]||{};
+  var saved = state.bookings[id]||{};
   toggleAI(true);
-  if(id==='flight_yvr_icn'){
-    var arrHour=parseHour(saved.arr);
-    if(arrHour!==null){
-      var slots=arrHour>=17?1:arrHour>=13?2:3;
-      state.arrivalOverrides.Seoul={day1Slots:slots};
-      saveState();renderSecs();
-      var desc=arrHour>=17?'just one evening activity (arrive + settle in)':arrHour>=13?'afternoon and evening only':'a full day';
-      appendChat('aiLog','ai','Got it — you land at '+(saved.arr||'')+'. Updated Sep 7 to show only '+desc+'. Skin treatments start fresh on Sep 8. ✨');
+
+  var arrivalMap = {
+    'flight_yvr_icn':  'Seoul',
+    'ktx_seoul_busan': 'Busan',
+    'flight_pus_cju':  'Jeju',
+    'flight_cju_tpe':  'Taipei',
+  };
+
+  var city = arrivalMap[id];
+  if(city){
+    var arrHour = parseHour(saved.arr);
+    if(arrHour !== null){
+      var day1Slots, desc;
+      if(arrHour >= 17){
+        day1Slots = 1;
+        desc = 'just one evening activity - arrive, check in, easy dinner';
+      } else if(arrHour >= 13){
+        day1Slots = 2;
+        desc = 'afternoon and evening only - morning is travel time';
+      } else {
+        day1Slots = 3;
+        desc = 'a full day of activities';
+      }
+      state.arrivalOverrides[city] = {day1Slots: day1Slots};
+      // Also handle departure from previous city
+      if(id === 'ktx_seoul_busan'){
+        var depH = parseHour(saved.dep);
+        if(depH !== null) state.arrivalOverrides.Seoul_departure = {depHour: depH};
+      } else if(id === 'flight_pus_cju'){
+        var depH2 = parseHour(saved.dep);
+        if(depH2 !== null) state.arrivalOverrides.Busan_departure = {depHour: depH2};
+      } else if(id === 'flight_cju_tpe'){
+        var depH3 = parseHour(saved.dep);
+        if(depH3 !== null) state.arrivalOverrides.Jeju_departure = {depHour: depH3};
+      }
+      saveState();
+      renderSecs();
+      appendChat('aiLog','ai','Got it - you arrive in '+city+' at '+(saved.arr||'')+', so Day 1 shows '+desc+'. Adjusted! ');
       return;
     }
   }
-  var details=Object.entries(saved).filter(function(e){return e[1];}).map(function(e){return e[0]+': '+e[1];}).join(', ');
-  var def=BOOKINGS_DEF.find(function(b){return b.id===id;});
-  appendChat('aiLog','ai','Looking at your booking... ✨',true);
+
+  var details = Object.entries(saved).filter(function(e){return e[1];}).map(function(e){return e[0]+': '+e[1];}).join(', ');
+  var def = BOOKINGS_DEF.find(function(b){return b.id===id;});
+  appendChat('aiLog','ai','Looking at your booking...',true);
   try{
-    var res=await callClaude('Booking: "'+def.title+'". Details: '+details+'. Current schedule: Seoul '+state.nights.Seoul+' nights, Busan '+state.nights.Busan+', Jeju '+state.nights.Jeju+', Taipei '+state.nights.Taipei+'. How does this affect daily activities? Give 2-3 specific warm concise suggestions.');
+    var res = await callClaude('Booking: "'+def.title+'". Details: '+details+'. Current schedule: Seoul '+state.nights.Seoul+' nights, Busan '+state.nights.Busan+', Jeju '+state.nights.Jeju+', Taipei '+state.nights.Taipei+'. How does this affect daily activities? Give 2-3 specific warm concise suggestions.');
     document.querySelector('.chat-loading')?.remove();
     appendChat('aiLog','ai',res);
   }catch(e){
     document.querySelector('.chat-loading')?.remove();
-    appendChat('aiLog','ai',e.message==='NO_KEY'?'Add your API key — tap 🔑 above.':'Error: '+e.message.slice(0,60));
+    appendChat('aiLog','ai',e.message==='NO_KEY'?'Add your API key - tap the key icon above.':'Error: '+e.message.slice(0,60));
   }
 }
+
 
 // ── AI ────────────────────────────────────────────────────────────────────────
 function getApiKey(){return localStorage.getItem('glowup_api_key')||'';}
