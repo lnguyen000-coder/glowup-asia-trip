@@ -229,9 +229,11 @@ body{font-family:Inter,sans-serif;background:var(--cream);color:var(--text);min-
 </div>
 
 <!-- SYNC PANEL -->
-<div style="background:#f0fdf4;border-bottom:1px solid #86efac;padding:8px 14px;display:flex;align-items:center;gap:8px;">
-  <span id="sdot" style="width:8px;height:8px;border-radius:50%;background:#ccc;display:inline-block;flex-shrink:0;"></span>
-  <span id="slbl" style="font-size:12px;color:var(--text2);">Connecting...</span>
+<div style="background:#f0fdf4;border-bottom:1px solid #86efac;padding:8px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+  <span id="sdot" style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;flex-shrink:0;"></span>
+  <span id="slbl" style="font-size:12px;color:var(--text2);flex:1;">Ready to sync</span>
+  <button onclick="pushToSheet()" style="font-size:11px;font-weight:700;padding:4px 12px;background:#2d1b3d;color:white;border:none;border-radius:20px;cursor:pointer;">⬆ Push my changes</button>
+  <button onclick="pullFromSheet()" style="font-size:11px;font-weight:700;padding:4px 12px;background:#2E9E82;color:white;border:none;border-radius:20px;cursor:pointer;">⬇ Pull latest</button>
 </div>
 
 <!-- ALLOCATOR -->
@@ -1226,87 +1228,67 @@ function openEditModal(city, priority){
 
 // ── LIVE SYNC ─────────────────────────────────────────────────────────────────
 var SYNC_URL = 'https://script.google.com/macros/s/AKfycbzxZ0MF_QmWxS11wIDA5j2ZbhNIO8aLyoiXomFE-xEGGGmHgsVf5itdIWXfJ6j31LcCLg/exec';
-var syncInterval = null;
-var lastSyncTime = null;
-var isSyncing = false;
 
-function startSync(){
-  syncFromSheet(); // immediate first pull
-  if(syncInterval) clearInterval(syncInterval);
-  syncInterval = setInterval(syncFromSheet, 15000); // every 15 seconds
-  updateSyncIndicator('live');
+async function pushToSheet(){
+  try{
+    await fetch(SYNC_URL, {
+      method:'POST',
+      body: JSON.stringify(state),
+      headers:{'Content-Type':'text/plain'}
+    });
+    updateSyncIndicator('pushed');
+  }catch(e){
+    updateSyncIndicator('error');
+  }
+}
+
+async function pullFromSheet(){
+  updateSyncIndicator('syncing');
+  try{
+    var res = await fetch(SYNC_URL + '?t=' + Date.now());
+    var json = await res.json();
+    if(json.status === 'ok' && json.data){
+      var remote = JSON.parse(json.data);
+      if(remote.nights) state.nights = remote.nights;
+      if(remote.hoods)  state.hoods  = remote.hoods;
+      if(remote.statuses) state.statuses = remote.statuses;
+      if(remote.bookings) state.bookings = remote.bookings;
+      if(remote.packing)  state.packing  = remote.packing;
+      if(remote.restaurantOverrides) state.restaurantOverrides = remote.restaurantOverrides;
+      if(remote.arrivalOverrides)    state.arrivalOverrides    = remote.arrivalOverrides;
+      localStorage.setItem('glowup_v6', JSON.stringify(state));
+      renderAlloc(); renderTabs(); renderSecs();
+      updateSyncIndicator('pulled');
+    } else {
+      updateSyncIndicator('empty');
+    }
+  }catch(e){
+    updateSyncIndicator('error');
+  }
 }
 
 function updateSyncIndicator(status){
   var dot = document.getElementById('sdot');
   var lbl = document.getElementById('slbl');
   if(!dot||!lbl) return;
-  if(status==='live'){
-    dot.style.background='#22c55e';
-    lbl.textContent='Live sync active';
-  } else if(status==='syncing'){
-    dot.style.background='#f59e0b';
-    lbl.textContent='Syncing...';
-  } else if(status==='error'){
-    dot.style.background='#ef4444';
-    lbl.textContent='Sync error - retrying';
-  }
+  var map = {
+    'pushed':  ['#22c55e', 'Pushed ✓ — others will see your changes'],
+    'pulled':  ['#22c55e', 'Pulled ✓ — you have the latest'],
+    'syncing': ['#f59e0b', 'Syncing...'],
+    'error':   ['#ef4444', 'Sync error — check connection'],
+    'empty':   ['#9b86b0', 'No data in sheet yet — push first'],
+    'live':    ['#22c55e', 'Ready to sync'],
+  };
+  var s = map[status]||map.live;
+  dot.style.background = s[0];
+  lbl.textContent = s[1];
 }
 
-async function pushToSheet(){
-  try{
-    var now = Date.now();
-    localStorage.setItem('glowup_lastpush', now.toString());
-    var payload = JSON.stringify(state);
-    await fetch(SYNC_URL, {
-      method: 'POST',
-      body: payload,
-      headers: {'Content-Type':'text/plain'}
-    });
-    lastSyncTime = now;
-  }catch(e){
-    console.log('Push error:', e);
-  }
+function startSync(){
+  updateSyncIndicator('live');
 }
 
-async function syncFromSheet(){
-  if(isSyncing) return;
-  isSyncing = true;
-  try{
-    var res = await fetch(SYNC_URL + '?t=' + Date.now());
-    var json = await res.json();
-    if(json.status === 'ok' && json.data){
-      var remote = JSON.parse(json.data);
-      var remoteTime = new Date(json.updated).getTime();
-      var localTime = parseInt(localStorage.getItem('glowup_lastpush')||'0');
-      // Only apply remote if it's strictly newer than our last local save
-      if(remoteTime > localTime + 2000){
-        if(remote.nights) state.nights = remote.nights;
-        if(remote.hoods)  state.hoods  = remote.hoods;
-        if(remote.statuses) state.statuses = remote.statuses;
-        if(remote.bookings) state.bookings = remote.bookings;
-        if(remote.packing)  state.packing  = remote.packing;
-        if(remote.restaurantOverrides) state.restaurantOverrides = remote.restaurantOverrides;
-        if(remote.arrivalOverrides)    state.arrivalOverrides    = remote.arrivalOverrides;
-        localStorage.setItem('glowup_v6', JSON.stringify(state));
-        renderAlloc();
-        renderTabs();
-        renderSecs();
-      }
-    }
-    updateSyncIndicator('live');
-  }catch(e){
-    updateSyncIndicator('error');
-  }
-  isSyncing = false;
-}
 
-// Override saveState to also push to sheet
-var originalSaveState = saveState;
-function saveState(){
-  originalSaveState();
-  pushToSheet();
-}
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 function boot(){
@@ -1316,7 +1298,7 @@ function boot(){
   renderAlloc();
   renderTabs();
   renderSecs();
-  startSync(); // start live sync automatically
+  updateSyncIndicator('live');
   if(state.sheetId){
     var si=document.getElementById('sheetIn');
     if(si)si.value='https://docs.google.com/spreadsheets/d/'+state.sheetId;
