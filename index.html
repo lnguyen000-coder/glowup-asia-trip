@@ -198,7 +198,7 @@ body{font-family:Inter,sans-serif;background:var(--cream);color:var(--text);min-
     <div class="logo">✨ <em>Glowup</em> Asia</div>
     <div class="hdr-btns">
       <button class="hbtn hbtn-key" id="keyBtn" onclick="openKeyModal()">🔑</button>
-      <button class="hbtn hbtn-ghost" onclick="toggleSync()">🔗</button>
+      
       <button class="hbtn hbtn-ai" onclick="toggleAI()">✨ Ask AI</button>
     </div>
   </div>
@@ -229,17 +229,9 @@ body{font-family:Inter,sans-serif;background:var(--cream);color:var(--text);min-
 </div>
 
 <!-- SYNC PANEL -->
-<div id="syncPanel" style="display:none;background:#f8f3ff;border-bottom:1px solid var(--border);padding:13px 14px;">
-  <div style="font-size:13px;font-weight:700;margin-bottom:6px;">🔗 Sync across all 3 phones</div>
-  <input id="sheetIn" class="modal-input" type="text" placeholder="Paste Google Sheet link…" style="margin-bottom:8px;"/>
-  <div style="display:flex;gap:7px;">
-    <button class="mbtn-primary" onclick="connectSheet()">Connect</button>
-    <button class="mbtn-secondary" onclick="toggleSync()">Close</button>
-  </div>
-  <div style="display:flex;align-items:center;gap:6px;margin-top:7px;font-size:12px;color:var(--text3);">
-    <span id="sdot" style="width:7px;height:7px;border-radius:50%;background:#ccc;display:inline-block;"></span>
-    <span id="slbl">Not connected</span>
-  </div>
+<div style="background:#f0fdf4;border-bottom:1px solid #86efac;padding:8px 14px;display:flex;align-items:center;gap:8px;">
+  <span id="sdot" style="width:8px;height:8px;border-radius:50%;background:#ccc;display:inline-block;flex-shrink:0;"></span>
+  <span id="slbl" style="font-size:12px;color:var(--text2);">Connecting...</span>
 </div>
 
 <!-- ALLOCATOR -->
@@ -1231,6 +1223,93 @@ function openEditModal(city, priority){
   setTimeout(function(){document.getElementById('edit-title').focus();},50);
 }
 
+
+// ── LIVE SYNC ─────────────────────────────────────────────────────────────────
+var SYNC_URL = 'https://script.google.com/macros/s/AKfycbzxZ0MF_QmWxS11wIDA5j2ZbhNIO8aLyoiXomFE-xEGGGmHgsVf5itdIWXfJ6j31LcCLg/exec';
+var syncInterval = null;
+var lastSyncTime = null;
+var isSyncing = false;
+
+function startSync(){
+  syncFromSheet(); // immediate first pull
+  if(syncInterval) clearInterval(syncInterval);
+  syncInterval = setInterval(syncFromSheet, 15000); // every 15 seconds
+  updateSyncIndicator('live');
+}
+
+function updateSyncIndicator(status){
+  var dot = document.getElementById('sdot');
+  var lbl = document.getElementById('slbl');
+  if(!dot||!lbl) return;
+  if(status==='live'){
+    dot.style.background='#22c55e';
+    lbl.textContent='Live sync active';
+  } else if(status==='syncing'){
+    dot.style.background='#f59e0b';
+    lbl.textContent='Syncing...';
+  } else if(status==='error'){
+    dot.style.background='#ef4444';
+    lbl.textContent='Sync error - retrying';
+  }
+}
+
+async function pushToSheet(){
+  if(isSyncing) return;
+  try{
+    var payload = JSON.stringify(state);
+    await fetch(SYNC_URL, {
+      method: 'POST',
+      body: payload,
+      headers: {'Content-Type':'text/plain'}
+    });
+    lastSyncTime = Date.now();
+  }catch(e){
+    console.log('Push error:', e);
+  }
+}
+
+async function syncFromSheet(){
+  if(isSyncing) return;
+  isSyncing = true;
+  updateSyncIndicator('syncing');
+  try{
+    var res = await fetch(SYNC_URL + '?t=' + Date.now());
+    var json = await res.json();
+    if(json.status === 'ok' && json.data){
+      var remote = JSON.parse(json.data);
+      var remoteTime = new Date(json.updated).getTime();
+      // Only apply if remote is newer than our last push
+      if(!lastSyncTime || remoteTime > lastSyncTime){
+        // Merge remote state - don't overwrite if we pushed more recently
+        if(remote.nights) state.nights = remote.nights;
+        if(remote.hoods)  state.hoods  = remote.hoods;
+        if(remote.statuses) state.statuses = remote.statuses;
+        if(remote.bookings) state.bookings = remote.bookings;
+        if(remote.packing)  state.packing  = remote.packing;
+        if(remote.restaurantOverrides) state.restaurantOverrides = remote.restaurantOverrides;
+        if(remote.arrivalOverrides)    state.arrivalOverrides    = remote.arrivalOverrides;
+        // Save locally too
+        localStorage.setItem('glowup_v6', JSON.stringify(state));
+        renderAlloc();
+        renderTabs();
+        renderSecs();
+      }
+    }
+    updateSyncIndicator('live');
+  }catch(e){
+    updateSyncIndicator('error');
+    console.log('Sync error:', e);
+  }
+  isSyncing = false;
+}
+
+// Override saveState to also push to sheet
+var originalSaveState = saveState;
+function saveState(){
+  originalSaveState();
+  pushToSheet();
+}
+
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 function boot(){
   loadState();
@@ -1239,6 +1318,7 @@ function boot(){
   renderAlloc();
   renderTabs();
   renderSecs();
+  startSync(); // start live sync automatically
   if(state.sheetId){
     var si=document.getElementById('sheetIn');
     if(si)si.value='https://docs.google.com/spreadsheets/d/'+state.sheetId;
