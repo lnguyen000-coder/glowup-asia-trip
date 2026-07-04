@@ -622,6 +622,15 @@ function renderSecs(){
         card.appendChild(ro);
       }
 
+      // Edit the suggested restaurant OR add your own
+      if(rp && !savedRest){
+        var editRestBtn = document.createElement('button');
+        editRestBtn.style.cssText = 'width:100%;margin-top:5px;padding:6px;background:none;border:1px dashed #fed7aa;border-radius:8px;font-size:11px;font-weight:600;color:#c2410c;cursor:pointer;font-family:Inter,sans-serif;';
+        editRestBtn.textContent = '✏️ Edit this suggestion or add your own';
+        editRestBtn.onclick = (function(ck,cp){return function(){openRestEditModal(ck,cp);};})(city,a.p);
+        card.appendChild(editRestBtn);
+      }
+
       // Add restaurant button
       var raBtn = document.createElement('button');
       raBtn.className = 'rest-add-btn';
@@ -679,6 +688,13 @@ function renderSecs(){
       aiBtn.textContent = '✨ Suggest something different';
       aiBtn.onclick = (function(c2,p2){return function(){openSuggestModal(c2,p2);};})(city,a.p);
       card.appendChild(aiBtn);
+
+      // Edit button - lets user write their own activity
+      var editBtn = document.createElement('button');
+      editBtn.style.cssText = 'width:100%;margin-top:5px;padding:7px;background:none;border:1px dashed var(--border);border-radius:var(--r-sm);font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;font-family:Inter,sans-serif;';
+      editBtn.textContent = '✏️ Write my own activity';
+      editBtn.onclick = (function(c2,p2){return function(){openEditModal(c2,p2);};})(city,a.p);
+      card.appendChild(editBtn);
 
       div.appendChild(card);
     });
@@ -1133,6 +1149,86 @@ function getRestaurantForCard(city,dayNum,slot){
   var pairings=RESTAURANT_PAIRINGS[city];
   if(!pairings)return null;
   return pairings.find(function(p){return p.day===dayNum&&p.slot===slot;})||null;
+}
+
+
+
+// ── EDIT RESTAURANT ───────────────────────────────────────────────────────────
+function openRestEditModal(city, priority){
+  var rp = getRestaurantForCard(city, Math.floor((priority-1)/3)+1, 
+    ACTIVITIES.find(function(a){return a.city===city&&a.p===priority;})?.slot||'');
+  var roKey = city+'-'+priority+'-rest';
+  var current = state.restaurantOverrides[roKey]||'';
+  var m = document.createElement('div');
+  m.className = 'modal-back';
+  m.innerHTML = '<div class="modal-box">'
+    +'<div class="modal-handle"></div>'
+    +'<div class="modal-title">🍽 Edit restaurant suggestion</div>'
+    +(rp?'<div style="font-size:12px;color:var(--text3);margin-bottom:10px;">Current suggestion: <strong>'+rp.name+'</strong></div>':'')
+    +'<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Your restaurant pick</label>'
+    +'<input id="rest-edit-name" class="modal-input" placeholder="Restaurant name, area, or note..." value="'+current+'"/>'
+    +'<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Details (optional)</label>'
+    +'<input id="rest-edit-detail" class="modal-input" placeholder="e.g. what to order, reservation needed, price range..."/>'
+    +'<div class="mbtn-row">'
+    +'<button class="mbtn-primary" id="restEditSaveBtn">Save</button>'
+    +'<button class="mbtn-secondary" id="restCancelBtn">Cancel</button>'
+    +'</div>'
+    +'</div>';
+  document.body.appendChild(m);
+  m.onclick = function(e){if(e.target===m)m.remove();};
+  document.getElementById('restCancelBtn').onclick = function(){m.remove();};
+  document.getElementById('restEditSaveBtn').onclick = function(){
+    var name = document.getElementById('rest-edit-name').value.trim();
+    var detail = document.getElementById('rest-edit-detail').value.trim();
+    if(!name){alert('Please enter a restaurant name');return;}
+    var val = name + (detail ? ' — ' + detail : '');
+    state.restaurantOverrides[roKey] = val;
+    saveState();
+    m.remove();
+    renderSecs();
+    toast('Restaurant saved ✓');
+  };
+  setTimeout(function(){document.getElementById('rest-edit-name').focus();},50);
+}
+
+// ── EDIT ACTIVITY ─────────────────────────────────────────────────────────────
+function openEditModal(city, priority){
+  var activity = ACTIVITIES.find(function(a){return a.city===city && a.p===priority;});
+  if(!activity) return;
+  var m = document.createElement('div');
+  m.className = 'modal-back';
+  m.innerHTML = '<div class="modal-box">'
+    +'<div class="modal-handle"></div>'
+    +'<div class="modal-title">✏️ Write your own activity</div>'
+    +'<div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Replacing: <strong>'+activity.title+'</strong></div>'
+    +'<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Title</label>'
+    +'<input id="edit-title" class="modal-input" placeholder="Activity title" value="'+activity.title+'"/>'
+    +'<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Description</label>'
+    +'<textarea id="edit-desc" class="modal-textarea" placeholder="What are you doing?">'+activity.desc+'</textarea>'
+    +'<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Tip (optional)</label>'
+    +'<input id="edit-tip" class="modal-input" placeholder="Any useful tip or note" value="'+(activity.tip||'')+'"/>'
+    +'<div class="mbtn-row">'
+    +'<button class="mbtn-primary" id="editSaveBtn">Save activity</button>'
+    +'<button class="mbtn-secondary" onclick="this.closest(\".modal-back\").remove()">Cancel</button>'
+    +'</div>'
+    +'</div>';
+  document.body.appendChild(m);
+  m.onclick = function(e){if(e.target===m)m.remove();};
+  document.getElementById('editSaveBtn').onclick = function(){
+    var title = document.getElementById('edit-title').value.trim();
+    var desc  = document.getElementById('edit-desc').value.trim();
+    var tip   = document.getElementById('edit-tip').value.trim();
+    if(!title){alert('Please add a title');return;}
+    activity.title = title;
+    activity.desc  = desc;
+    activity.tip   = tip;
+    activity.aiGenerated = true; // mark as customised
+    saveCustomActivities();
+    m.remove();
+    renderSecs();
+    toast('Activity saved ✓');
+  };
+  setTimeout(function(){document.getElementById('edit-title').focus();},50);
 }
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
