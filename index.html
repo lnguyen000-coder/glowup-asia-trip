@@ -1254,15 +1254,16 @@ function updateSyncIndicator(status){
 }
 
 async function pushToSheet(){
-  if(isSyncing) return;
   try{
+    var now = Date.now();
+    localStorage.setItem('glowup_lastpush', now.toString());
     var payload = JSON.stringify(state);
     await fetch(SYNC_URL, {
       method: 'POST',
       body: payload,
       headers: {'Content-Type':'text/plain'}
     });
-    lastSyncTime = Date.now();
+    lastSyncTime = now;
   }catch(e){
     console.log('Push error:', e);
   }
@@ -1271,16 +1272,15 @@ async function pushToSheet(){
 async function syncFromSheet(){
   if(isSyncing) return;
   isSyncing = true;
-  updateSyncIndicator('syncing');
   try{
     var res = await fetch(SYNC_URL + '?t=' + Date.now());
     var json = await res.json();
     if(json.status === 'ok' && json.data){
       var remote = JSON.parse(json.data);
       var remoteTime = new Date(json.updated).getTime();
-      // Only apply if remote is newer than our last push
-      if(!lastSyncTime || remoteTime > lastSyncTime){
-        // Merge remote state - don't overwrite if we pushed more recently
+      var localTime = parseInt(localStorage.getItem('glowup_lastpush')||'0');
+      // Only apply remote if it's strictly newer than our last local save
+      if(remoteTime > localTime + 2000){
         if(remote.nights) state.nights = remote.nights;
         if(remote.hoods)  state.hoods  = remote.hoods;
         if(remote.statuses) state.statuses = remote.statuses;
@@ -1288,7 +1288,6 @@ async function syncFromSheet(){
         if(remote.packing)  state.packing  = remote.packing;
         if(remote.restaurantOverrides) state.restaurantOverrides = remote.restaurantOverrides;
         if(remote.arrivalOverrides)    state.arrivalOverrides    = remote.arrivalOverrides;
-        // Save locally too
         localStorage.setItem('glowup_v6', JSON.stringify(state));
         renderAlloc();
         renderTabs();
@@ -1298,7 +1297,6 @@ async function syncFromSheet(){
     updateSyncIndicator('live');
   }catch(e){
     updateSyncIndicator('error');
-    console.log('Sync error:', e);
   }
   isSyncing = false;
 }
