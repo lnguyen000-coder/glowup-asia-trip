@@ -1299,6 +1299,8 @@ function boot(){
   renderTabs();
   renderSecs();
   updateSyncIndicator('live');
+  // Always pull latest from sheet on load
+  pullFromSheet();
   if(state.sheetId){
     var si=document.getElementById('sheetIn');
     if(si)si.value='https://docs.google.com/spreadsheets/d/'+state.sheetId;
