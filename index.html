@@ -305,6 +305,7 @@ var state = {
   packing: {},
   restaurantOverrides: {},
   arrivalOverrides: {},
+  customActs: [],
   activeTab: 'Seoul',
   sheetId: null,
 };
@@ -314,7 +315,7 @@ function saveState(){
 }
 function loadState(){
   // Clear any old version data
-  ['glowup_v3','glowup_v4','glowup_v5','glowup_custom_acts','glowup_sheet_id'].forEach(function(k){
+  ['glowup_v3','glowup_v4','glowup_v5','glowup_sheet_id'].forEach(function(k){
     localStorage.removeItem(k);
   });
   try{
@@ -326,6 +327,7 @@ function loadState(){
     if(s.packing)  state.packing  = s.packing;
     if(s.restaurantOverrides) state.restaurantOverrides = s.restaurantOverrides;
     if(s.arrivalOverrides)    state.arrivalOverrides    = s.arrivalOverrides;
+    if(s.customActs)          state.customActs          = s.customActs;
     if(s.activeTab) state.activeTab = s.activeTab;
     if(s.sheetId)   state.sheetId   = s.sheetId;
   }catch(e){}
@@ -1108,11 +1110,12 @@ async function suggestAlternative(city,priority,note){
 }
 function saveCustomActivities(){
   var custom=ACTIVITIES.filter(function(a){return a.aiGenerated;});
-  localStorage.setItem('glowup_custom_acts',JSON.stringify(custom));
+  state.customActs = custom;
+  saveState();
 }
 function loadCustomActivities(){
   try{
-    var saved=JSON.parse(localStorage.getItem('glowup_custom_acts')||'[]');
+    var saved = state.customActs || [];
     saved.forEach(function(sa){
       var i=ACTIVITIES.findIndex(function(a){return a.city===sa.city&&a.p===sa.p;});
       if(i!==-1)ACTIVITIES[i]=sa;
@@ -1257,6 +1260,9 @@ async function pullFromSheet(){
       if(remote.packing)  state.packing  = remote.packing;
       if(remote.restaurantOverrides) state.restaurantOverrides = remote.restaurantOverrides;
       if(remote.arrivalOverrides)    state.arrivalOverrides    = remote.arrivalOverrides;
+      if(remote.customActs)          state.customActs          = remote.customActs;
+      // Re-apply custom activities to the ACTIVITIES bank
+      loadCustomActivities();
       // Save to localStorage
       localStorage.setItem('glowup_v6', JSON.stringify(state));
       // Force complete re-render with a tiny delay to ensure DOM is ready
