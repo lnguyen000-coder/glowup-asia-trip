@@ -724,7 +724,7 @@ function renderBookings(container){
     var card = document.createElement('div');
     card.className='book-card';
     var headerHtml='<div class="book-header"><span class="book-icon">'+b.icon+'</span>'
-      +'<div><div class="book-title">'+b.title+'</div><div class="book-sub">'+b.sub+'</div></div>'
+      +'<div><div class="book-title">'+b.title+'</div><div class="book-sub">'+getBookingSub(b.id)+'</div></div>'
       +'<span class="book-status '+(isBooked?'booked':'pending')+'">'+(isBooked?'Booked ✓':'Pending')+'</span></div>';
     var fieldsHtml='<div class="field-row">';
     b.fields.forEach(function(f){
@@ -1228,6 +1228,38 @@ function openEditModal(city, priority){
   setTimeout(function(){document.getElementById('edit-title').focus();},50);
 }
 
+
+
+// ── BOOKING DATE HELPERS ──────────────────────────────────────────────────────
+function getTransitionDate(fromCity) {
+  var dates = computeDates();
+  var map = {
+    'Seoul':   dates.Seoul.end,    // last night in Seoul = departure day
+    'Busan':   dates.Busan.end,
+    'Jeju':    dates.Jeju.end,
+    'Taipei':  dates.Taipei.end,
+  };
+  return map[fromCity] || null;
+}
+
+function fmtBookingDate(d) {
+  if (!d) return '';
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+}
+
+function getBookingSub(id) {
+  switch(id) {
+    case 'flight_yvr_icn':  return 'Outbound flight · Sep 6';
+    case 'ktx_seoul_busan': return 'Seoul → Busan · ' + fmtBookingDate(getTransitionDate('Seoul'));
+    case 'flight_pus_cju':  return 'Domestic flight · ' + fmtBookingDate(getTransitionDate('Busan'));
+    case 'flight_cju_tpe':  return 'Jeju → Taipei · ' + fmtBookingDate(getTransitionDate('Jeju'));
+    case 'flight_tpe_yvr':  return 'Return flight · ' + fmtBookingDate(getTransitionDate('Taipei'));
+    case 'jeju_car':        return 'Sep ' + fmtBookingDate(getTransitionDate('Busan')) + ' – ' + fmtBookingDate(getTransitionDate('Jeju')) + ' · Jeju Airport';
+    case 'skin_clinic':     return 'Laser and skin booster treatment';
+    case 'skin_clinic2':    return 'Follow-up treatment';
+    default:                return '';
+  }
+}
 
 // ── LIVE SYNC ─────────────────────────────────────────────────────────────────
 var SYNC_URL = 'https://script.google.com/macros/s/AKfycbzxZ0MF_QmWxS11wIDA5j2ZbhNIO8aLyoiXomFE-xEGGGmHgsVf5itdIWXfJ6j31LcCLg/exec';
